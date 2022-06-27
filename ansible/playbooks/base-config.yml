@@ -1,0 +1,62 @@
+---
+- name: Making base configuration
+  hosts: all
+  become: yes
+  connection: local
+  tasks:
+    - name: Set timezone
+      timezone:
+        name: Europe/Paris
+        
+    - name: Update package list
+      apt: update_cache=yes
+      changed_when: 0
+
+    - name: Install basic packages
+      apt:
+        name:
+          - locales
+          - vim
+          - htop
+          - sudo
+          - wget
+          - curl
+          - ruby
+          - lsof
+          - fail2ban
+
+    - name: Setup locales
+      locale_gen:
+        name: 'en_US.UTF-8'
+        state: present
+
+    - name: User management | Add christianvdz
+      user:
+        name: christianvdz
+        shell: /bin/bash
+        groups: ['sudo']
+
+    - name: User management | Allow user to sudo without password
+      lineinfile:
+        path: /etc/sudoers
+        line: 'christianvdz ALL=(ALL) NOPASSWD:ALL'
+        insertbefore: EOF
+
+    - name: User management | Create .ssh directory
+      file:
+        path: /home/christianvdz/.ssh/
+        state: directory
+        owner: christianvdz
+        group: christianvdz
+        mode: 0700
+
+    - name: User management | Set up SSH key
+      template:
+        src: ssh/authorized_keys.j2
+        dest: '{{ item }}'
+        owner: christianvdz
+        group: christianvdz
+        mode: 0600
+      with_items:
+       - /home/christianvdz/.ssh/authorized_keys
+
